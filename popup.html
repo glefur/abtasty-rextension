@@ -2,13 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AB Tasty Checker</title>
-  <script src="popup.js"></script>
+  <title>AB Tasty Cookie Data</title>
+  <style>
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+  </style>
 </head>
 <body>
   <h1>AB Tasty Tag Status</h1>
   <div><strong>Status:</strong> <span id="status">Checking...</span></div>
-  <div><strong>ABTasty.results:</strong> <pre id="results">N/A</pre></div>
-  <div><strong>ABTasty Cookie:</strong> <pre id="cookie">N/A</pre></div>
+  
+  <h3>Visitor Properties</h3>
+  <table id="propertyTable">
+    <tr><th>Property</th><th>Value</th></tr>
+    <!-- Rows will be added here dynamically -->
+  </table>
+
+  <h3>Campaign Sessions</h3>
+  <table id="sessionTable">
+    <tr>
+      <th>Campaign ID</th><th>Variation ID</th><th>Pages Seen</th><th>Pages Seen in Current Session</th>
+      <th>Session Count</th><th>Variation Applied</th><th>First Seen</th><th>Last Seen</th>
+      <th>Random Allocation</th><th>Last Seen Session</th>
+    </tr>
+    <!-- Rows will be added here dynamically -->
+  </table>
+
+  <script src="popup.js"></script>
 </body>
 </html>

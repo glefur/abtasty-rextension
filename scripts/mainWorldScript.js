@@ -18,20 +18,24 @@
 
   // Ecoute les demandes pour récupérer ABTasty.results et le cookie
   window.addEventListener("message", (event) => {
-    if (event.data && event.data.type === "fetchABTastyData") {
-      console.log(`Fetching AB Tasty data for ${window.location}`);
-      
-      // Récupère les données
+    if (event.data && event.data.type === "fetchABTastyData") {      
+      // Récupère les données ABTasty.results et ABTasty cookie
       const abtastyResults = typeof ABTasty !== "undefined" ? ABTasty.results : null;
+      
+      // Récupère le cookie ABTasty en extrayant tout après le premier "="
       const abtastyCookie = document.cookie
         .split("; ")
         .find(row => row.startsWith("ABTasty="))
-        ?.split("=")[1] || "Cookie not found";
-
+        ?.substring("ABTasty=".length) || "Cookie not found";
+  
+      console.log(`All cookies: ${document.cookie}`);
+      console.log(`AB Tasty cookie: ${abtastyCookie}`);
+  
       // Envoie les données au background script via le content script
       window.postMessage({ type: "abtastyDataResponse", results: abtastyResults, cookie: abtastyCookie }, "*");
     }
   });
+  
 
   // Utilise MutationObserver pour détecter le chargement asynchrone du tag
   const observer = new MutationObserver(checkABTastyTag);
