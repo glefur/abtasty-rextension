@@ -2,7 +2,6 @@
 
 document.addEventListener("DOMContentLoaded", async () => {
   const status = document.getElementById("status");
-  // const results = document.getElementById("results");
   const propertyTable = document.getElementById("propertyTable");
   const sessionTable = document.getElementById("sessionTable");
 
@@ -10,16 +9,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const tabId = tab.id;
 
   chrome.runtime.sendMessage({ type: "requestTagStatus", tabId }, (response) => {
-    console.log(`Status: ${status} / result:`);
     status.textContent = response.isPresent ? "AB Tasty Tag: Present" : "AB Tasty Tag: Not Present";
 
     if (response.isPresent) {
       chrome.runtime.sendMessage({ type: "fetchABTastyData", tabId }, (data) => {
-
-        console.log(`data:`);
-        console.log(JSON.stringify(data));
-        // results.textContent = data.results ? JSON.stringify(data.results, null, 2) : "No data available";
-        
         if (data.cookie) {
           // Affiche le cookie de manière formatée
           populateCookieData(data.cookie, propertyTable, sessionTable);
@@ -28,15 +21,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
     } else {
-      // results.textContent = "N/A";
       propertyTable.insertAdjacentHTML("beforeend", "<tr><td colspan='2'>N/A</td></tr>");
-      sessionTable.insertAdjacentHTML("beforeend", "<tr><td colspan='10'>N/A</td></tr>");
+      sessionTable.style.display = "none";
     }
   });
 });
 
 // Fonction pour afficher les données du cookie dans les tables
 function populateCookieData(cookie, propertyTable, sessionTable) {
+  // Mappage des clés aux libellés explicites pour les propriétés connues
+  const propertyLabels = {
+    uid: "Unique Visitor ID",
+    fst: "First Session Timestamp",
+    pst: "Previous Session Timestamp",
+    cst: "Current Session Timestamp",
+    ns: "Number of Sessions",
+    pvt: "Total Pages Viewed",
+    pvis: "Pages Viewed in Current Session"
+  };
+
   // Analyse les données du cookie en deux parties
   const properties = {};
   const sessions = [];
@@ -47,44 +50,52 @@ function populateCookieData(cookie, propertyTable, sessionTable) {
     const [key, value] = pair.split("=");
     if (key === "th") {
       // Cas des sessions listées sous la clé `th`
-      const sessionEntries = value.split("_");
-      sessionEntries.forEach(entry => {
-        const sessionData = entry.split(".");
-        sessions.push({
-          campaignID: sessionData[0],
-          variationID: sessionData[1],
-          pagesSeen: sessionData[2],
-          currentSessionPagesSeen: sessionData[3],
-          sessionCount: sessionData[4],
-          variationApplied: sessionData[5] === "1" ? "Yes" : "No",
-          firstSeen: new Date(parseInt(sessionData[6])).toLocaleString(),
-          lastSeen: new Date(parseInt(sessionData[7])).toLocaleString(),
-          randomAllocation: sessionData[8] === "1" ? "Yes" : "No",
-          lastSeenSession: sessionData[9]
+      if (value) {
+        const sessionEntries = value.split("_");
+        sessionEntries.forEach(entry => {
+          const sessionData = entry.split(".");
+          sessions.push({
+            campaignID: sessionData[0],
+            variationID: sessionData[1],
+            pagesSeen: sessionData[2],
+            currentSessionPagesSeen: sessionData[3],
+            sessionCount: sessionData[4],
+            variationApplied: sessionData[5] === "1" ? "Yes" : "No",
+            firstSeen: new Date(parseInt(sessionData[6])).toLocaleString(),
+            lastSeen: new Date(parseInt(sessionData[7])).toLocaleString(),
+            randomAllocation: sessionData[8] === "1" ? "Yes" : "No",
+            lastSeenSession: sessionData[9]
+          });
         });
-      });
+      }
     } else {
       // Propriétés principales
       properties[key] = value;
     }
   });
 
-  // Remplir la table des propriétés
+  // Remplir la table des propriétés avec des libellés explicites
   for (const [key, value] of Object.entries(properties)) {
     const row = document.createElement("tr");
-    row.innerHTML = `<td>${key}</td><td>${value}</td>`;
+    const label = propertyLabels[key] || key; // Utilise le libellé explicite si connu, sinon la clé
+    row.innerHTML = `<td>${label}</td><td>${value}</td>`;
     propertyTable.appendChild(row);
   }
 
-  // Remplir la table des sessions
-  sessions.forEach(session => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${session.campaignID}</td><td>${session.variationID}</td><td>${session.pagesSeen}</td>
-      <td>${session.currentSessionPagesSeen}</td><td>${session.sessionCount}</td>
-      <td>${session.variationApplied}</td><td>${session.firstSeen}</td>
-      <td>${session.lastSeen}</td><td>${session.randomAllocation}</td><td>${session.lastSeenSession}</td>
-    `;
-    sessionTable.appendChild(row);
-  });
+  // Remplir la table des sessions, ou masquer la table si aucune session n'est présente
+  if (sessions.length > 0) {
+    sessionTable.style.display = "table";
+    sessions.forEach(session => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${session.campaignID}</td><td>${session.variationID}</td><td>${session.pagesSeen}</td>
+        <td>${session.currentSessionPagesSeen}</td><td>${session.sessionCount}</td>
+        <td>${session.variationApplied}</td><td>${session.firstSeen}</td>
+        <td>${session.lastSeen}</td><td>${session.randomAllocation}</td><td>${session.lastSeenSession}</td>
+      `;
+      sessionTable.appendChild(row);
+    });
+  } else {
+    sessionTable.style.display = "none"; // Masque la table si `th` est vide ou nulle
+  }
 }
