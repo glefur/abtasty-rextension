@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const status = document.getElementById("status");
   const propertyTable = document.getElementById("propertyTable");
   const sessionTable = document.getElementById("sessionTable");
+  const sessionTitle = document.querySelector("h3:nth-of-type(2)"); // Sélectionne le titre "Campaign Sessions"
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const tabId = tab.id;
@@ -15,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       chrome.runtime.sendMessage({ type: "fetchABTastyData", tabId }, (data) => {
         if (data.cookie) {
           // Affiche le cookie de manière formatée
-          populateCookieData(data.cookie, propertyTable, sessionTable);
+          populateCookieData(data.cookie, propertyTable, sessionTable, sessionTitle);
         } else {
           propertyTable.insertAdjacentHTML("beforeend", "<tr><td colspan='2'>No cookie found</td></tr>");
         }
@@ -23,12 +24,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       propertyTable.insertAdjacentHTML("beforeend", "<tr><td colspan='2'>N/A</td></tr>");
       sessionTable.style.display = "none";
+      sessionTitle.style.display = "none"; // Masque le titre des sessions si le tag n'est pas présent
     }
   });
 });
 
 // Fonction pour afficher les données du cookie dans les tables
-function populateCookieData(cookie, propertyTable, sessionTable) {
+function populateCookieData(cookie, propertyTable, sessionTable, sessionTitle) {
   // Mappage des clés aux libellés explicites pour les propriétés connues
   const propertyLabels = {
     uid: "Unique Visitor ID",
@@ -82,9 +84,10 @@ function populateCookieData(cookie, propertyTable, sessionTable) {
     propertyTable.appendChild(row);
   }
 
-  // Remplir la table des sessions, ou masquer la table si aucune session n'est présente
+  // Remplir la table des sessions, ou masquer la table et le titre si aucune session n'est présente
   if (sessions.length > 0) {
     sessionTable.style.display = "table";
+    sessionTitle.style.display = "block";
     sessions.forEach(session => {
       const row = document.createElement("tr");
       row.innerHTML = `
@@ -97,5 +100,6 @@ function populateCookieData(cookie, propertyTable, sessionTable) {
     });
   } else {
     sessionTable.style.display = "none"; // Masque la table si `th` est vide ou nulle
+    sessionTitle.style.display = "none"; // Masque également le titre
   }
 }
