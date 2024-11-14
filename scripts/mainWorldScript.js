@@ -1,45 +1,42 @@
 // scripts/mainWorldScript.js
 
 (function() {
-  let attempts = 0;
-  const maxAttempts = 10; // Maximum de tentatives pour vérifier ABTasty.results
-  const interval = 500;   // Intervalle entre les vérifications (en ms)
-
-  function sendABTastyStatus() {
-    console.log('Je teste')
+  // Fonction pour vérifier la présence du tag AB Tasty
+  function checkABTastyTag() {
+    console.log(`Checking AB Tasty tag on ${window.location}`);
     const isABTastyPresent = Array.from(document.scripts).some(script => script.src.includes("try.abtasty.com"));
-    const abtastyResults = isABTastyPresent && typeof ABTasty !== "undefined" ? ABTasty.results : null;
 
-    // Si le tag est présent et que ABTasty.results est défini, envoie les informations
-    if (isABTastyPresent && abtastyResults) {
-      console.log('J envoie');
-      window.postMessage({ 
-        type: "abtastyTagStatus", 
-        isPresent: isABTastyPresent, 
-        results: abtastyResults 
-      }, "*");
-      observer.disconnect(); // Arrête d'observer si tout est prêt
-    } else if (isABTastyPresent && attempts < maxAttempts) {
-      console.log('Je reesaierai');
-      // Si le tag est présent mais pas ABTasty.results, attend et réessaie
-      attempts++;
-      setTimeout(sendABTastyStatus, interval);
-    } else if (attempts >= maxAttempts) {
-      console.log('J abandonne ');
-      // Après un nombre maximal de tentatives, envoie un résultat sans ABTasty.results
-      window.postMessage({ 
-        type: "abtastyTagStatus", 
-        isPresent: isABTastyPresent, 
-        results: null 
-      }, "*");
-      observer.disconnect();
+    if (isABTastyPresent) {
+      // Envoie la présence du tag au background script via le content script
+      console.log('AB Tasty tag found!');
+      window.postMessage({ type: "abtastyTagStatus", isPresent: isABTastyPresent }, "*");
+      observer.disconnect(); // Arrête d'observer si le tag est trouvé
+    } else {
+      console.log('AB Tasty tag not found...');
     }
   }
 
-  // MutationObserver pour détecter le chargement asynchrone du tag
-  const observer = new MutationObserver(sendABTastyStatus);
+  // Ecoute les demandes pour récupérer ABTasty.results et le cookie
+  window.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "fetchABTastyData") {
+      console.log(`Fetching AB Tasty data for ${window.location}`);
+      
+      // Récupère les données
+      const abtastyResults = typeof ABTasty !== "undefined" ? ABTasty.results : null;
+      const abtastyCookie = document.cookie
+        .split("; ")
+        .find(row => row.startsWith("ABTasty="))
+        ?.split("=")[1] || "Cookie not found";
+
+      // Envoie les données au background script via le content script
+      window.postMessage({ type: "abtastyDataResponse", results: abtastyResults, cookie: abtastyCookie }, "*");
+    }
+  });
+
+  // Utilise MutationObserver pour détecter le chargement asynchrone du tag
+  const observer = new MutationObserver(checkABTastyTag);
   observer.observe(document, { childList: true, subtree: true });
 
   // Lance une première vérification immédiatement
-  sendABTastyStatus();
+  checkABTastyTag();
 })();
