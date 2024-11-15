@@ -1,5 +1,3 @@
-// popup.js
-
 document.addEventListener("DOMContentLoaded", async () => {
   const status = document.getElementById("status");
   const abtastyResultsTable = document.getElementById("abtastyResultsTable");
@@ -16,9 +14,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (response.isPresent) {
       chrome.runtime.sendMessage({ type: "fetchABTastyData", tabId }, (data) => {
         if (data.results) {
-          populateABTastyResults(data.results, abtastyResultsTable);
+          populateABTastyResults(data.results, abtastyResultsTable, tabId);
         } else {
-          abtastyResultsTable.insertAdjacentHTML("beforeend", "<tr><td colspan='4'>No data available</td></tr>");
+          abtastyResultsTable.insertAdjacentHTML("beforeend", "<tr><td colspan='5'>No data available</td></tr>");
         }
 
         if (data.cookie) {
@@ -31,21 +29,33 @@ document.addEventListener("DOMContentLoaded", async () => {
       propertyTable.insertAdjacentHTML("beforeend", "<tr><td colspan='2'>N/A</td></tr>");
       sessionTable.style.display = "none";
       sessionTitle.style.display = "none";
-      abtastyResultsTable.insertAdjacentHTML("beforeend", "<tr><td colspan='4'>No data available</td></tr>");
+      abtastyResultsTable.insertAdjacentHTML("beforeend", "<tr><td colspan='5'>No data available</td></tr>");
     }
   });
 });
 
 // Fonction pour afficher AB Tasty Results dans la table
-function populateABTastyResults(results, abtastyResultsTable) {
-  Object.values(results).forEach(result => {
+function populateABTastyResults(results, abtastyResultsTable, tabId) {
+  Object.entries(results).forEach(([campaignID, result]) => {
     const row = document.createElement("tr");
+
+    const editorLink = document.createElement("a");
+    editorLink.href = "#";
+    editorLink.textContent = "Editor";
+    editorLink.onclick = () => {
+      chrome.runtime.sendMessage({ type: "injectEditor", campaignID, tabId });
+    };
+
+    const editorCell = document.createElement("td");
+    editorCell.appendChild(editorLink);
+
     row.innerHTML = `
-      <td>${result.name}</td>
-      <td>${result.type}</td>
-      <td>${result.campaignID}</td>
-      <td>${result.status}</td>
+      <td>${result.name || "N/A"}</td>
+      <td>${result.type || "N/A"}</td>
+      <td>${campaignID}</td>
+      <td>${result.status || "N/A"}</td>
     `;
+    row.appendChild(editorCell);
     abtastyResultsTable.appendChild(row);
   });
 }
@@ -117,3 +127,4 @@ function populateCookieData(cookie, propertyTable, sessionTable, sessionTitle) {
     sessionTitle.style.display = "none";
   }
 }
+  

@@ -1,6 +1,4 @@
-// background.js
-
-const tabData = {}; // Stocke uniquement la présence du tag pour chaque onglet
+const tabData = {};
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const tabId = sender.tab ? sender.tab.id : message.tabId;
@@ -17,16 +15,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.tabs.sendMessage(tabId, { type: "fetchABTastyData" }, (response) => {
       sendResponse(response);
     });
-    return true; // Maintient la connexion pour la réponse asynchrone
+    return true; // Maintient la connexion pour un traitement asynchrone
+  } else if (message.type === "injectEditor") {
+    chrome.tabs.sendMessage(tabId, { type: "injectEditor", campaignID: message.campaignID });
+    return true; // Maintient la connexion pour un traitement asynchrone
   }
 });
 
-// Nettoie les données de l'onglet fermé
+// Nettoyage des données d'onglet
 chrome.tabs.onRemoved.addListener((tabId) => {
   delete tabData[tabId];
 });
 
-// Réinitialise les données de l'onglet lorsque la page est rechargée
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "loading") {
     delete tabData[tabId];
