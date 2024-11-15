@@ -12,11 +12,18 @@
 <body>
   <h1>AB Tasty Tag Status</h1>
   <div><strong>Status:</strong> <span id="status">Checking...</span></div>
-  
+
+  <h3>AB Tasty Results</h3>
+  <table id="abtastyResultsTable">
+    <tr>
+      <th>Campaign Name</th><th>Type</th><th>Campaign ID</th><th>Status</th>
+    </tr>
+    <!-- Rows will be added here dynamically -->
+  </table>
+
   <h3>Visitor Properties</h3>
   <table id="propertyTable">
     <tr><th>Property</th><th>Value</th></tr>
-    <!-- Rows will be added here dynamically -->
   </table>
 
   <h3>Campaign Sessions</h3>
@@ -26,7 +33,6 @@
       <th>Session Count</th><th>Variation Applied</th><th>First Seen</th><th>Last Seen</th>
       <th>Random Allocation</th><th>Last Seen Session</th>
     </tr>
-    <!-- Rows will be added here dynamically -->
   </table>
 
   <script src="popup.js"></script>

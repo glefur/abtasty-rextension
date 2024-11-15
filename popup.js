@@ -2,9 +2,10 @@
 
 document.addEventListener("DOMContentLoaded", async () => {
   const status = document.getElementById("status");
+  const abtastyResultsTable = document.getElementById("abtastyResultsTable");
   const propertyTable = document.getElementById("propertyTable");
   const sessionTable = document.getElementById("sessionTable");
-  const sessionTitle = document.querySelector("h3:nth-of-type(2)"); // Sélectionne le titre "Campaign Sessions"
+  const sessionTitle = document.querySelector("h3:nth-of-type(3)");
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const tabId = tab.id;
@@ -14,8 +15,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (response.isPresent) {
       chrome.runtime.sendMessage({ type: "fetchABTastyData", tabId }, (data) => {
+        if (data.results) {
+          populateABTastyResults(data.results, abtastyResultsTable);
+        } else {
+          abtastyResultsTable.insertAdjacentHTML("beforeend", "<tr><td colspan='4'>No data available</td></tr>");
+        }
+
         if (data.cookie) {
-          // Affiche le cookie de manière formatée
           populateCookieData(data.cookie, propertyTable, sessionTable, sessionTitle);
         } else {
           propertyTable.insertAdjacentHTML("beforeend", "<tr><td colspan='2'>No cookie found</td></tr>");
@@ -24,14 +30,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       propertyTable.insertAdjacentHTML("beforeend", "<tr><td colspan='2'>N/A</td></tr>");
       sessionTable.style.display = "none";
-      sessionTitle.style.display = "none"; // Masque le titre des sessions si le tag n'est pas présent
+      sessionTitle.style.display = "none";
+      abtastyResultsTable.insertAdjacentHTML("beforeend", "<tr><td colspan='4'>No data available</td></tr>");
     }
   });
 });
 
+// Fonction pour afficher AB Tasty Results dans la table
+function populateABTastyResults(results, abtastyResultsTable) {
+  Object.values(results).forEach(result => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${result.name}</td>
+      <td>${result.type}</td>
+      <td>${result.campaignID}</td>
+      <td>${result.status}</td>
+    `;
+    abtastyResultsTable.appendChild(row);
+  });
+}
+
 // Fonction pour afficher les données du cookie dans les tables
 function populateCookieData(cookie, propertyTable, sessionTable, sessionTitle) {
-  // Mappage des clés aux libellés explicites pour les propriétés connues
   const propertyLabels = {
     uid: "Unique Visitor ID",
     fst: "First Session Timestamp",
@@ -42,16 +62,13 @@ function populateCookieData(cookie, propertyTable, sessionTable, sessionTitle) {
     pvis: "Pages Viewed in Current Session"
   };
 
-  // Analyse les données du cookie en deux parties
   const properties = {};
   const sessions = [];
 
-  // Séparer les propriétés principales et les sessions
   const pairs = cookie.split("&");
   pairs.forEach(pair => {
     const [key, value] = pair.split("=");
     if (key === "th") {
-      // Cas des sessions listées sous la clé `th`
       if (value) {
         const sessionEntries = value.split("_");
         sessionEntries.forEach(entry => {
@@ -71,20 +88,17 @@ function populateCookieData(cookie, propertyTable, sessionTable, sessionTitle) {
         });
       }
     } else {
-      // Propriétés principales
       properties[key] = value;
     }
   });
 
-  // Remplir la table des propriétés avec des libellés explicites
   for (const [key, value] of Object.entries(properties)) {
     const row = document.createElement("tr");
-    const label = propertyLabels[key] || key; // Utilise le libellé explicite si connu, sinon la clé
+    const label = propertyLabels[key] || key;
     row.innerHTML = `<td>${label}</td><td>${value}</td>`;
     propertyTable.appendChild(row);
   }
 
-  // Remplir la table des sessions, ou masquer la table et le titre si aucune session n'est présente
   if (sessions.length > 0) {
     sessionTable.style.display = "table";
     sessionTitle.style.display = "block";
@@ -99,7 +113,7 @@ function populateCookieData(cookie, propertyTable, sessionTable, sessionTitle) {
       sessionTable.appendChild(row);
     });
   } else {
-    sessionTable.style.display = "none"; // Masque la table si `th` est vide ou nulle
-    sessionTitle.style.display = "none"; // Masque également le titre
+    sessionTable.style.display = "none";
+    sessionTitle.style.display = "none";
   }
 }
